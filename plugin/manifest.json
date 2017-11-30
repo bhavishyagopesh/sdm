@@ -1,0 +1,28 @@
+{
+  "manifest_version": 2,
+  "name": "SDM",
+  "version": "1.0",
+  "description": "Calls SDM for downloads using given parameters",
+  "icons": {
+    "48": "icons/icon.svg",
+    "96": "icons/icon.svg"
+  },
+
+  "background": {
+    "scripts": [
+      "script.js"
+    ]
+  },
+
+  "permissions": [
+    "activeTab",
+    "contextMenus",
+    "cookies",
+    "<all_urls>"
+  ],
+  "protocol_handlers": [{
+    "protocol": "web+sdm",
+    "name": "SDM download manager",
+    "uriTemplate": "http://please.choose.sdm.using.button.below/%s"
+  }]
+}
