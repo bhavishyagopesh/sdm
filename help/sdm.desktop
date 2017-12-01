@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Stream Download Manager
+Exec=sdm %u
+Icon=sdm_icon.svg
+Type=Application
+Terminal=true
+MimeType=x-scheme-handler/web+sdm;
