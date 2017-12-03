@@ -6,10 +6,40 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
+var sizeGlobal int64
+var startTime time.Time = time.Now()
+var totalDown int64
+
+func printSpeed() {
+	for {
+		time.Sleep(1 * time.Second)
+		t := time.Now().Sub(startTime).Seconds()
+		speed := float64(totalDown) / t
+		if speed < 1000 {
+			fmt.Printf("Speed: %.2fB/s\n", speed)
+			continue
+		}
+		speed /= 1000
+		if speed < 1000 {
+			fmt.Printf("Speed: %.2fKB/s\n", speed)
+			continue
+		}
+		speed /= 1000
+		if speed < 1000 {
+			fmt.Printf("Speed: %.2fMB/s\n", speed)
+			continue
+		}
+		speed /= 1000
+		fmt.Printf("Speed: %.2fGB/s\n", speed)
+	}
+}
+
 func start(c chan struct{}) {
+	go printSpeed()
 	url := info.URL
 	chunks := []chunk{}
 	chunkable := false
@@ -25,9 +55,12 @@ func start(c chan struct{}) {
 	resp, err := client.Do(req)
 	check(err)
 	defer resp.Body.Close()
+	finalURL := resp.Request.URL.String()
+	fmt.Println("Final url is:", finalURL)
 
 	length := resp.ContentLength
-	fmt.Println(length)
+	sizeGlobal = length
+	fmt.Println("ContentLength is:", length, "bytes")
 
 	if length == -1 || resp.Header.Get("Accept-Ranges") != "bytes" {
 		chunkable = false
@@ -72,13 +105,10 @@ func startDownload(chunks []chunk, url string, wg *sync.WaitGroup) {
 	}
 	req.Header.Set("User-Agent", info.Agent)
 
-	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", chunks[i].start,
-		chunks[i].start+chunks[i].size-1))
+	req.Header.Set("Range", fmt.Sprintf("bytes=%d-", chunks[i].start))
 
 	resp, err := client.Do(req)
-	check(err)
-
-	if resp.ContentLength != chunks[i].size {
+	if err != nil || resp.ContentLength != sizeGlobal-chunks[i].start {
 		ungrab(chunks, i)
 		return
 	}
@@ -106,11 +136,13 @@ func contDownload(chunks []chunk, in io.Reader, index int) {
 
 		n, err := io.CopyN(out, in, bytes)
 		size -= n
+		atomic.AddInt64(&totalDown, n)
 		if err != nil || size == 0 {
 			break
 		}
 		println(index, "index", chunks[index].size-size, "bytes downloaded")
 	}
+	println(index, "index", chunks[index].size-size, "bytes downloaded")
 
 	if index == len(chunks)-1 {
 		return

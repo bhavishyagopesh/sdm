@@ -1,6 +1,10 @@
 package main
 
-import "sync"
+import (
+	"fmt"
+	"math"
+	"sync"
+)
 
 type chunk struct {
 	start   int64
@@ -37,7 +41,7 @@ func grabChunk(chunks []chunk) int {
 
 func getChunks(length int64) []chunk {
 	chunks := make([]chunk, 0, 8)
-	chunksize := max(length/8, 2*1024*1024)
+	chunksize := max(int64(math.Ceil(float64(length)/8)), 1024*1024)
 	offset := int64(0)
 	for length > 0 {
 		chunks = append(chunks, chunk{
@@ -48,5 +52,6 @@ func getChunks(length int64) []chunk {
 		length -= chunks[len(chunks)-1].size
 		offset += chunks[len(chunks)-1].size
 	}
+	fmt.Println("Chunks are:", chunks)
 	return chunks
 }
